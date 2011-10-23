@@ -27,10 +27,8 @@ class BitlyUrl(Document):
     path[0] is the base URL, and path[-1] will be the final URL
     
     """
-    _public_fields = ('base_url', 'resolved_url', 'status', 'path')
+    _public_fields = ('status', 'path', 'content_type')
 
-#    base_url = StringField(required=True)
-#    resolved_url = StringField(required=True)
     status = IntField()
     path = ListField(StringField(), required=True)
     content_type = StringField(required=True)
