@@ -36,12 +36,16 @@ class BGHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         for bitly in results:
 #            print bitly.status
 #            print bitly.resolved_url
-            self.wfile.write('<li>%d - %s - %s - <a href="%s">%s</a></li>\n' %
+            self.wfile.write('<li>%d - %s - ' %
                              (bitly.status,
-                              bitly.content_type,
-                              escape(bitly.base_url, quote=True),
-                              escape(bitly.resolved_url, quote=True),
-                              escape(bitly.resolved_url, quote=True)))
+                              bitly.content_type))
+
+            for u in bitly.path:
+                self.wfile.write('<a href="%s">%s</a><br />' %
+                                 (escape(u, quote=True),
+                                  escape(u, quote=True)))
+
+            self.wfile.write('</li>\n')
 
 
     def do_GET(self):
@@ -62,8 +66,8 @@ class BGHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             results = get_results_by_content_type(db, content_type='image/%')
             for res in results:
                 self.wfile.write('<br><img src="%s" />%s - %s<br>\n' %
-                                 (res.resolved_url, res.base_url,
-                                  res.resolved_url))
+                                 (res.path[-1], res.path[0],
+                                  res.path[-1]))
 
         elif self.path == '/nonhtml':
             results = get_results(db, status=200, exclude_content='text/html')

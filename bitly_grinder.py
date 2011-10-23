@@ -89,26 +89,19 @@ def resolve_url(db, url):
     
     :param db: `SQLite3` db handle
     :param url: `string` containing the URL to resolve
-    :rtype: `tuple` in the format (`int`, `string`, `string`, file-like
-            object, as returned by `urllib2.urlopen()`).
-            The `int` is the status code returned when requesting the
-            final URL in the resolution process.
-            
-            The first `string` is the initially-requested URL.
-            
-            The second `string` is the final URL in the resolution
-            process.
-            
-            The last object is the file-like object returned by
-            `urllib2.urlopen()`
+    :rtype: `BitlyUrl` object representing the lengthened short URL
 
     """
     headers = {
         'User-Agent': choice(USER_AGENTS),
     }
-    code = None
+    longener = BitlyUrl(
+        status=None,
+        path=[url, ],
+        content_type='Unknown',
+    )
+
     resp = None
-    final_url = url
 
     print '=== %s ===' % url
     req = urllib2.Request(url, headers=headers)
@@ -117,37 +110,42 @@ def resolve_url(db, url):
     opener = urllib2.build_opener(redirect)
 
     try:
-#        resp = urllib2.urlopen(req)
         resp = opener.open(req)
-        code = resp.getcode()
-        final_url = resp.geturl()
+        longener.status = resp.getcode()
+        longener.content_type = resp.headers.type
 
     except urllib2.HTTPError, e:
-        print 'Durk durk', url, e
-        code = e.code
+        longener.status = e.code
 
-#        return (e.code, url, url, None)
+        if longener.status not in (404, 503):
+            """Raise if don't know how to handle"""
+            raise e
 
     except urllib2.URLError, e:
-        print 'urlerror ', e
         if e.reason.errno == 60:
             """Timed out
             
             So technically, this isn't a 504 (gateway timeout), but it's
             the closest 
             """
-            code = 504
-            print 'timeout'
+            longener.status = 504
 
+        else:
+            print 'urlerror ', e.reason.errno, e
+            raise urllib2.URLError(e)
 
-    if code in (301, 302):
-        print 'recursing'
-        return resolve_url(db, final_url)
+    if longener.status in (301, 302):
+        """Consider getting rid of this.. not used"""
+        raise ValueError('Somehow managed to recurse.... %s' % url)
 
-    print 'Final path: ', redirect.path
-    print 'Final URL: %s' % final_url
+    # Only attempt to set the longener path if there's stuff there
+    if len(redirect.path) > 0:
+        print 'setting it'
+        longener.path = redirect.path
 
-    return (code, url, final_url, resp)
+    print 'Final path: ', longener.path
+
+    return longener
 
 
 def main(url, resolve_dupes=True):
@@ -167,28 +165,27 @@ def main(url, resolve_dupes=True):
     base_url = url[:-2]
     for i in CHARSET:
         for j in CHARSET:
-            bitly = BitlyUrl(base_url='%s%s%s' % (base_url, chr(i), chr(j)))
+#            bitly = BitlyUrl(base_url='%s%s%s' % (base_url, chr(i), chr(j)))
+            url = '%s%s%s' % (base_url, chr(i), chr(j))
 
             # If skipping existing entries, check for this URL and skip
             # if we already have it
             if not resolve_dupes:
-                existing = get_result(db, bitly.base_url)
+#                existing = get_result(db, bitly.base_url)
+                existing = get_result(db, url)
 
                 if existing:
                     continue
 
-            (bitly.status,
-             bitly.base_url,
-             bitly.resolved_url, resp) = resolve_url(db, bitly.base_url)
+#            (bitly.status,
+#             bitly.base_url,
+#             bitly.resolved_url, resp) = resolve_url(db, bitly.base_url)
 
-            if resp:
-                bitly.content_type = resp.headers.type
-            else:
-                bitly.content_type = 'Unknown'
+            bitly = resolve_url(db, url)
 
             if bitly.status != 404:
                 sys.stdout.write('%s\t%s\n' % (bitly.content_type,
-                                               bitly.resolved_url))
+                                               bitly.path[-1]))
 
             save_result(db, bitly)
 

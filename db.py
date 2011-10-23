@@ -178,7 +178,7 @@ def save_result(db, data, commit=True):
         curs.execute('''
             INSERT OR REPLACE INTO urls (url, status, content_type, data)
             VALUES (?, ?, ?, ?)
-        ''', (data.base_url.encode('utf-8'), data.status, data.content_type,
+        ''', (data.path[0].encode('utf-8'), data.status, data.content_type,
               data.to_json().encode('utf-8')))
 
     except UnicodeDecodeError:

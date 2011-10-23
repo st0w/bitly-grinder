@@ -21,13 +21,18 @@ from dictshield.fields import IntField, ListField, StringField
 
 # ---*< Code >*---------------------------------------------------------------
 class BitlyUrl(Document):
-    """Data related to bit.ly resolution"""
+    """Data related to URL shortener resolution
+    
+    path is a list of URLs encountered in the resolution process
+    path[0] is the base URL, and path[-1] will be the final URL
+    
+    """
     _public_fields = ('base_url', 'resolved_url', 'status', 'path')
 
-    base_url = StringField(required=True)
-    resolved_url = StringField(required=True)
+#    base_url = StringField(required=True)
+#    resolved_url = StringField(required=True)
     status = IntField()
-    path = ListField(StringField())
+    path = ListField(StringField(), required=True)
     content_type = StringField(required=True)
 
 
