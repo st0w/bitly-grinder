@@ -34,6 +34,8 @@ class BGHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         
         """
         for bitly in results:
+#            print bitly.status
+#            print bitly.resolved_url
             self.wfile.write('<li>%d - %s - %s - <a href="%s">%s</a></li>\n' %
                              (bitly.status,
                               bitly.content_type,
@@ -69,6 +71,10 @@ class BGHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         elif self.path == '/nonhtml-all':
             results = get_results(db, exclude_content='text/html')
+            self.print_links(results)
+
+        elif self.path == '/all':
+            results = get_results(db)
             self.print_links(results)
 
         else:

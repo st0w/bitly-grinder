@@ -33,6 +33,8 @@ from db import init_db_conn, get_result, save_result
 from models import BitlyUrl
 
 # ---*< Initialization >*-----------------------------------------------------
+# List of ASCII values to try in URLs - all digits, lower + uppercase alpha
+CHARSET = range(48, 58) + range(65, 91) + range(97, 123)
 USER_AGENTS = [
     'Mozilla/5.0 (Windows; U; Windows NT 5.1; de; rv:1.9.2.3) Gecko/20100401 '
     'Firefox/3.6.3 (FM Scene 4.6.1)',
@@ -48,11 +50,37 @@ USER_AGENTS = [
     '',
 ]
 
-# List of ASCII values to try in URLs - all digits, lower + uppercase alpha
-CHARSET = range(48, 58) + range(65, 91) + range(97, 123)
-
 
 # ---*< Code >*---------------------------------------------------------------
+class RedirectHandler(urllib2.HTTPRedirectHandler, object):
+    """Override HTTP redirections, so we can track redirection path
+    
+    """
+    path = None
+
+    def reset(self):
+        self.path = []
+
+    def redirect_request(self, req, fp, code, msg, hdrs, newurl):
+#        print 'Req: %s' % repr(req)
+#        print 'Message: %s' % repr(msg)
+        print 'Old URL: %s' % req.get_full_url()
+        print 'New URL: %s' % newurl
+
+        if len(self.path) == 0:
+            print 'adding old url'
+            self.path.append(req.get_full_url())
+
+        self.path.append(newurl)
+        print '-----'
+
+        res = super(RedirectHandler, self).redirect_request(req, fp, code,
+                                                             msg, hdrs, newurl)
+
+        print code
+        return res
+
+
 def resolve_url(db, url):
     """Resolves a URL to its final destination URL
     
@@ -78,19 +106,48 @@ def resolve_url(db, url):
     headers = {
         'User-Agent': choice(USER_AGENTS),
     }
+    code = None
+    resp = None
+    final_url = url
 
+    print '=== %s ===' % url
     req = urllib2.Request(url, headers=headers)
+    redirect = RedirectHandler()
+    redirect.reset()
+    opener = urllib2.build_opener(redirect)
 
     try:
-        resp = urllib2.urlopen(req)
+#        resp = urllib2.urlopen(req)
+        resp = opener.open(req)
+        code = resp.getcode()
+        final_url = resp.geturl()
+
     except urllib2.HTTPError, e:
-        return (e.code, url, url, None)
+        print 'Durk durk', url, e
+        code = e.code
 
-    if resp.getcode() in (301, 302):
+#        return (e.code, url, url, None)
+
+    except urllib2.URLError, e:
+        print 'urlerror ', e
+        if e.reason.errno == 60:
+            """Timed out
+            
+            So technically, this isn't a 504 (gateway timeout), but it's
+            the closest 
+            """
+            code = 504
+            print 'timeout'
+
+
+    if code in (301, 302):
         print 'recursing'
-        return resolve_url(db, resp.geturl())
+        return resolve_url(db, final_url)
 
-    return (resp.getcode(), url, resp.geturl(), resp)
+    print 'Final path: ', redirect.path
+    print 'Final URL: %s' % final_url
+
+    return (code, url, final_url, resp)
 
 
 def main(url, resolve_dupes=True):
@@ -120,13 +177,14 @@ def main(url, resolve_dupes=True):
                 if existing:
                     continue
 
-            try:
-                (bitly.status,
-                 bitly.base_url,
-                 bitly.resolved_url, resp) = resolve_url(db, bitly.base_url)
-            except urllib2.URLError:
-                """If URL is invalid, just skip it"""
-                continue
+#            try:
+            (bitly.status,
+             bitly.base_url,
+             bitly.resolved_url, resp) = resolve_url(db, bitly.base_url)
+#            except urllib2.URLError, e:
+#                """If URL is invalid, just skip it"""
+#                print 'url error ', e
+#                continue
 
             if resp:
                 bitly.content_type = resp.headers.type
