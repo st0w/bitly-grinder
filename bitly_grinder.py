@@ -62,32 +62,23 @@ class RedirectHandler(urllib2.HTTPRedirectHandler, object):
         self.path = []
 
     def redirect_request(self, req, fp, code, msg, hdrs, newurl):
-#        print 'Req: %s' % repr(req)
-#        print 'Message: %s' % repr(msg)
-        print 'Old URL: %s' % req.get_full_url()
-        print 'New URL: %s' % newurl
 
         if len(self.path) == 0:
-            print 'adding old url'
             self.path.append(req.get_full_url())
 
         self.path.append(newurl)
-        print '-----'
-
         res = super(RedirectHandler, self).redirect_request(req, fp, code,
-                                                             msg, hdrs, newurl)
+                                                            msg, hdrs, newurl)
 
-        print code
         return res
 
 
-def resolve_url(db, url):
+def resolve_url(url):
     """Resolves a URL to its final destination URL
     
     This will rescursively call itself until the status is anything
     other than 301 or 302.
     
-    :param db: `SQLite3` db handle
     :param url: `string` containing the URL to resolve
     :rtype: `BitlyUrl` object representing the lengthened short URL
 

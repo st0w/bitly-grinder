@@ -34,8 +34,6 @@ class BGHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         
         """
         for bitly in results:
-#            print bitly.status
-#            print bitly.resolved_url
             self.wfile.write('<li>%d - %s - ' %
                              (bitly.status,
                               bitly.content_type))
