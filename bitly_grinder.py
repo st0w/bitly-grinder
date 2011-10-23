@@ -13,11 +13,12 @@ By default, will follow sequential URLs.  This is to allow for starting
 and stopping without hitting the same URL twice.
 
 Works recursively.  Start with a URL, it keeps following redirects until
-getting something other than 301/302.
+getting something other than 301/302.  This will be inaccurate when
+loading a site, thus reaching the final URL, which then redirects based
+on User-Agent, javascript, or anything else.  This should be cleaned up.
 
-
-Thoughts:
-* Track the resulting document type, so can easily view non-HTML
+bit.ly URLs are case sensitive, which significantly increases the search
+space.
 
 """
 # ---*< Standard imports >*---------------------------------------------------
@@ -28,7 +29,7 @@ import urllib2
 # ---*< Third-party imports >*------------------------------------------------
 
 # ---*< Local imports >*------------------------------------------------------
-from db import init_db_conn, save_result
+from db import init_db_conn, get_result, save_result
 from models import BitlyUrl
 
 # ---*< Initialization >*-----------------------------------------------------
@@ -51,6 +52,9 @@ USER_AGENTS = [
     '',
 ]
 
+# List of ASCII values to try in URLs - all digits, lower + uppercase alpha
+CHARSET = range(48, 58) + range(65, 91) + range(97, 123)
+
 
 # ---*< Code >*---------------------------------------------------------------
 def resolve_url(db, url):
@@ -61,9 +65,18 @@ def resolve_url(db, url):
     
     :param db: `SQLite3` db handle
     :param url: `string` containing the URL to resolve
-    :rtype: `tuple` in the format (`int`, `string`).  The `string` is
-            the final URL in the resolution process, and the `int` is
-            the status code obtained when trying to access it.
+    :rtype: `tuple` in the format (`int`, `string`, `string`, file-like
+            object, as returned by `urllib2.urlopen()`).
+            The `int` is the status code returned when requesting the
+            final URL in the resolution process.
+            
+            The first `string` is the initially-requested URL.
+            
+            The second `string` is the final URL in the resolution
+            process.
+            
+            The last object is the file-like object returned by
+            `urllib2.urlopen()`
 
     """
     headers = {
@@ -75,39 +88,62 @@ def resolve_url(db, url):
     try:
         resp = urllib2.urlopen(req)
     except urllib2.HTTPError, e:
-        return (e.code, url, url)
+        return (e.code, url, url, None)
 
     if resp.getcode() in (301, 302):
         print 'recursing'
         return resolve_url(db, resp.geturl())
 
-    return (resp.getcode(), url, resp.geturl())
+    return (resp.getcode(), url, resp.geturl(), resp)
 
 
-def main(url):
+def main(url, resolve_dupes=True):
     """Simple wrapper, just calls the resolver for now
     
     Drops the last letter of the passed `url` and then grabs all URLs
     that start with the remaining `string`
     
     :param url: `string` of the base URL to start with
+    :param resolve_dupes: `Boolean` whether or not to re-process
+                          existing entries.
     :rtype: None
     
     """
     db = init_db_conn()
 
-    base_url = url[:-1]
-    for i in range(97, 123):
-        bitly = BitlyUrl(base_url='%s%s' % (base_url, chr(i)))
+    base_url = url[:-2]
+    for i in CHARSET:
+        for j in CHARSET:
+            bitly = BitlyUrl(base_url='%s%s%s' % (base_url, chr(i), chr(j)))
 
-        (bitly.status,
-         bitly.base_url,
-         bitly.resolved_url) = resolve_url(db, bitly.base_url)
+            # If skipping existing entries, check for this URL and skip
+            # if we already have it
+            if not resolve_dupes:
+                existing = get_result(db, bitly.base_url)
 
-        if bitly.status != 404:
-            sys.stdout.write('%d %s\t-> %s\n' % (bitly.status, bitly.base_url,
-                                             bitly.resolved_url))
-        save_result(db, bitly)
+                if existing:
+                    continue
+
+            try:
+                (bitly.status,
+                 bitly.base_url,
+                 bitly.resolved_url, resp) = resolve_url(db, bitly.base_url)
+            except urllib2.URLError:
+                """If URL is invalid, just skip it"""
+                continue
+
+            if resp:
+                bitly.content_type = resp.headers.type
+            else:
+                bitly.content_type = 'Unknown'
+
+            if bitly.status != 404:
+                sys.stdout.write('%s\t%s\n' % (bitly.content_type,
+                                               bitly.resolved_url))
+    #            sys.stdout.write('%d %s\t-> %s\n' % (bitly.status, bitly.base_url,
+    #                                             bitly.resolved_url))
+
+            save_result(db, bitly)
 
 
 if __name__ == "__main__":
@@ -116,6 +152,6 @@ if __name__ == "__main__":
         sys.stderr.write('Usage: %s url\n' % sys.argv[0])
         sys.exit(1)
 
-    main(sys.argv[1])
+    main(sys.argv[1], resolve_dupes=False)
 
 __all__ = ()
