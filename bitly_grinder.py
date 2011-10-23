@@ -166,7 +166,7 @@ def main(url, resolve_dupes=True):
                 if existing:
                     continue
 
-            bitly = resolve_url(db, url)
+            bitly = resolve_url(url)
 
             if bitly.status != 404:
                 sys.stdout.write('%s\t%s\n' % (bitly.content_type,
