@@ -156,21 +156,15 @@ def main(url, resolve_dupes=True):
     base_url = url[:-2]
     for i in CHARSET:
         for j in CHARSET:
-#            bitly = BitlyUrl(base_url='%s%s%s' % (base_url, chr(i), chr(j)))
             url = '%s%s%s' % (base_url, chr(i), chr(j))
 
             # If skipping existing entries, check for this URL and skip
             # if we already have it
             if not resolve_dupes:
-#                existing = get_result(db, bitly.base_url)
                 existing = get_result(db, url)
 
                 if existing:
                     continue
-
-#            (bitly.status,
-#             bitly.base_url,
-#             bitly.resolved_url, resp) = resolve_url(db, bitly.base_url)
 
             bitly = resolve_url(db, url)
 
