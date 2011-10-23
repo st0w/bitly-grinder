@@ -12,13 +12,13 @@ Created on Oct 22, 2011
 """
 # ---*< Standard imports >*---------------------------------------------------
 import BaseHTTPServer
+from cgi import escape
 import SocketServer
 
 # ---*< Third-party imports >*------------------------------------------------
 
 # ---*< Local imports >*------------------------------------------------------
-from db import get_results, init_db_conn
-from models import BitlyUrl
+from db import get_results, get_results_by_content_type, init_db_conn
 
 # ---*< Initialization >*-----------------------------------------------------
 PORT = 8000
@@ -26,6 +26,22 @@ PORT = 8000
 # ---*< Code >*---------------------------------------------------------------
 class BGHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     """Simple GET handler for bit.ly grinder"""
+    def print_links(self, results):
+        """Displays a list of BitlyUrl objects as links
+        
+        :param results: `iterable` that provides `BitlyUrl` objects
+        :rtype: None
+        
+        """
+        for bitly in results:
+            self.wfile.write('<li>%d - %s - %s - <a href="%s">%s</a></li>\n' %
+                             (bitly.status,
+                              bitly.content_type,
+                              escape(bitly.base_url, quote=True),
+                              escape(bitly.resolved_url, quote=True),
+                              escape(bitly.resolved_url, quote=True)))
+
+
     def do_GET(self):
         # Not the most efficient way to connect to the DB, would be
         # better to connect once and retain, but, I'm lazy.
@@ -39,11 +55,25 @@ class BGHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.wfile.write("<html><head><title>bit.ly grinder</title></head>")
         self.wfile.write("<body><ul>")
 
-        for bitly in get_results(db, 200):
-            self.wfile.write('<li>%d - %s - <a href="%s">%s</a></li>' %
-                             (bitly.status, bitly.base_url,
-                              bitly.resolved_url,
-                              bitly.resolved_url))
+        if self.path == '/images':
+            """Show all matching images"""
+            results = get_results_by_content_type(db, content_type='image/%')
+            for res in results:
+                self.wfile.write('<br><img src="%s" />%s - %s<br>\n' %
+                                 (res.resolved_url, res.base_url,
+                                  res.resolved_url))
+
+        elif self.path == '/nonhtml':
+            results = get_results(db, status=200, exclude_content='text/html')
+            self.print_links(results)
+
+        elif self.path == '/nonhtml-all':
+            results = get_results(db, exclude_content='text/html')
+            self.print_links(results)
+
+        else:
+            results = get_results(db, status=200)
+            self.print_links(results)
 
         self.wfile.write("</ul></body></html>")
 
@@ -55,7 +85,10 @@ def serve(port):
     httpd = SocketServer.TCPServer(("", port), Handler)
 
     print "serving at port", port
-    httpd.serve_forever()
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        httpd.shutdown()
 
 
 def main():

@@ -13,7 +13,7 @@ Created on Oct 22, 2011
 
 # ---*< Third-party imports >*------------------------------------------------
 from dictshield.document import Document
-from dictshield.fields import DateTimeField, IntField, ListField, StringField
+from dictshield.fields import IntField, ListField, StringField
 
 # ---*< Local imports >*------------------------------------------------------
 
@@ -28,6 +28,7 @@ class BitlyUrl(Document):
     resolved_url = StringField(required=True)
     status = IntField()
     path = ListField(StringField())
+    content_type = StringField(required=True)
 
 
 __all__ = (BitlyUrl)
