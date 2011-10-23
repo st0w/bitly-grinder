@@ -177,14 +177,9 @@ def main(url, resolve_dupes=True):
                 if existing:
                     continue
 
-#            try:
             (bitly.status,
              bitly.base_url,
              bitly.resolved_url, resp) = resolve_url(db, bitly.base_url)
-#            except urllib2.URLError, e:
-#                """If URL is invalid, just skip it"""
-#                print 'url error ', e
-#                continue
 
             if resp:
                 bitly.content_type = resp.headers.type
@@ -194,8 +189,6 @@ def main(url, resolve_dupes=True):
             if bitly.status != 404:
                 sys.stdout.write('%s\t%s\n' % (bitly.content_type,
                                                bitly.resolved_url))
-    #            sys.stdout.write('%d %s\t-> %s\n' % (bitly.status, bitly.base_url,
-    #                                             bitly.resolved_url))
 
             save_result(db, bitly)
 
