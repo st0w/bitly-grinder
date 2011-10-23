@@ -34,10 +34,6 @@ from models import BitlyUrl
 
 # ---*< Initialization >*-----------------------------------------------------
 USER_AGENTS = [
-    'Mozilla/5.0 (iPad; U; CPU OS 3_2 like Mac OS X; en-us) '
-    'AppleWebKit/531.21.10 (KHTML, like Gecko) Version/4.0.4 Mobile/7B334b '
-    'Safari/531.21.102011-10-16 20:23:50',
-
     'Mozilla/5.0 (Windows; U; Windows NT 5.1; de; rv:1.9.2.3) Gecko/20100401 '
     'Firefox/3.6.3 (FM Scene 4.6.1)',
 
