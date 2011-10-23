@@ -121,6 +121,13 @@ def resolve_url(url):
             """
             longener.status = 504
 
+        elif e.reason.errno == 61:
+            """Connection refused
+            
+            Treat it as 'service unavailable' - close enough
+            """
+            longener.status = 503
+
         else:
             print 'urlerror ', e.reason.errno, e
             raise urllib2.URLError(e)
