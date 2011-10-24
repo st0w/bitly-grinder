@@ -183,6 +183,7 @@ def save_result(db, data, commit=True):
 
     except UnicodeDecodeError:
         """Unicode fail... will have to handle this properly at some point"""
+        print 'Unicode fail'
         pass
 
     else:

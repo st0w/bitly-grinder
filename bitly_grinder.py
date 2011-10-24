@@ -20,6 +20,11 @@ on User-Agent, javascript, or anything else.  This should be cleaned up.
 bit.ly URLs are case sensitive, which significantly increases the search
 space.
 
+tinyurl.com short URLs are not case sensitive.
+
+Need to have a schema for representing a shortening service - one that
+allows for defining things like case sensitivity, length, format, etc.
+
 """
 # ---*< Standard imports >*---------------------------------------------------
 from random import choice
@@ -87,7 +92,7 @@ def resolve_url(url):
         'User-Agent': choice(USER_AGENTS),
     }
     longener = BitlyUrl(
-        status=None,
+        status=1,
         path=[url, ],
         content_type='Unknown',
     )
@@ -106,9 +111,13 @@ def resolve_url(url):
         longener.content_type = resp.headers.type
 
     except urllib2.HTTPError, e:
+        if e.code in (410,):
+            e.code = 404
+
         longener.status = e.code
 
-        if longener.status not in (404, 503):
+        if longener.status not in (301, 302, 400, 401, 403, 404, 406,
+                                   500, 502, 503, 504):
             """Raise if don't know how to handle"""
             raise e
 
@@ -121,20 +130,23 @@ def resolve_url(url):
             """
             longener.status = 504
 
-        elif e.reason.errno == 61:
-            """Connection refused
+        elif e.reason.errno in (51, 54, 61):
+            """
+            51 = Network unreachable
+            54 = Connection reset by peer
+            61 = Connection refused
             
             Treat it as 'service unavailable' - close enough
             """
             longener.status = 503
 
+        elif e.reason.errno == 8:
+            """DNS fail"""
+            longener.status = 503
+
         else:
             print 'urlerror ', e.reason.errno, e
             raise urllib2.URLError(e)
-
-    if longener.status in (301, 302):
-        """Consider getting rid of this.. not used"""
-        raise ValueError('Somehow managed to recurse.... %s' % url)
 
     # Only attempt to set the longener path if there's stuff there
     if len(redirect.path) > 0:
