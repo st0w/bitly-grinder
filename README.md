@@ -18,6 +18,13 @@ and the grinder then tries every iteration created by fuzzing the last two
 characters.  By default, tries upper and lowercase letters and digits.  You
 can change this by altering `CHARSET`.
 
+The grinder will try every URL in sequence, and it will track every URL
+it encounters during resolution.  It also tracks the status code encountered
+when retrieving the final URL in the resolution process.  It will follow as
+many redirections as it encounters starting with the base URL.  It also
+tracks the content-type obtained at the final URL in the resolution
+process.
+
 Results are stored in an SQLite database, named `bitly-grinder.db` in the
 same directory as the script is run from.
 
