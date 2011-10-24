@@ -47,3 +47,17 @@ Dependencies
 * [DictShield](http://github.com/j2labs/dictshield) -- DictShield, an
   awesome library that provides typed dictionary support and object
   modeling/validation.
+
+Future and Contributing
+-----------------------
+
+I've thought of a number of random things that would be cool to add to the
+project at some point.  If you've got more or you're interested in
+contributing, please get in touch with me.
+
+* Extend the HTTP server for result browsing, possibly with an AJAXy UI
+* Provide statistics on what sites have the most shortened URLs
+* Track history - resolution path + destination URLs over time
+* Some kind of remote control mechanism, so that grinding can be distributed
+  across a number of remote nodes, e.g. AWS.
+* Randomization of grinding URLs
