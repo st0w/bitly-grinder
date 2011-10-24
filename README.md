@@ -15,14 +15,14 @@ Results can be browsed via the embedded simple HTTP server, which runs on
 port 8000 by default.  Just run `grinder_http_server.py` and then browse to
 `http://localhost:8000`.  The following paths exist by default:
 
-* [/] -- (or any unknown URL) Displays URLs and all paths in the resolution
+* / -- (or any unknown URL) Displays URLs and all paths in the resolution
   process that ultimately resulted in status 200.
-* [/all] -- Displays every result obtained.
-* [/nonhtml] -- Displays only results that were valid (status 200) and
+* /all -- Displays every result obtained.
+* /nonhtml -- Displays only results that were valid (status 200) and
   not of content-type text/html
-* [/nonhtml-all] -- Displays all results with content-type other than
+* /nonhtml-all -- Displays all results with content-type other than
   text/html, regardless of status.
-* [images] -- Displays all images that were found.
+* /images -- Displays all images that were found.
 
 Dependencies
 ------------
