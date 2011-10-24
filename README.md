@@ -1,6 +1,15 @@
 bitly-grinder
 =============
 
+About
+-----
+
+After seeing Daniel Crowley's entertaining talk at ShmooCon 2011 on URL
+shorteners, I'd wanted to put together something to do some URL grinding
+and harvesting myself.  Which led to this project.  Because people use
+URL shortening services without realizing that things they shorten can
+be easily discovered, there's a lot of stuff out there.
+
 At this point, the project is probably not terribly accurately named - it
 supports pretty much any kind of URL shortening/redirection service.  In
 the current state, it basically works by passing a URL to the grinder,
